@@ -26,12 +26,21 @@ def send_to_target(url: str, payload: str, auth_token: str = None, timeout: int 
     # Auto-detect API endpoint if base URL is provided
     # Try common endpoint paths in priority order
     base_url = url.rstrip('/')  # Remove trailing slash if present
-    endpoints_to_try = [
-        (f"{base_url}/api/chat", {"message": payload}),  # Most common pattern
-        (f"{base_url}/chat", {"message": payload}),
-        (f"{base_url}/v1/chat/completions", {"messages": [{"role": "user", "content": payload}], "max_tokens": 500}),
-        (f"{base_url}", {"message": payload}),  # Try root without slash
-    ]
+    
+    # If URL already contains a path (e.g. /api/chat), try it directly first
+    if '/' in url.split('://', 1)[-1].split(':', 1)[-1]:
+        # URL has a path, use it as-is
+        endpoints_to_try = [
+            (base_url, {"message": payload}),
+        ]
+    else:
+        # Base URL without path, try common patterns
+        endpoints_to_try = [
+            (f"{base_url}/api/chat", {"message": payload}),  # Most common pattern (DSA bot)
+            (f"{base_url}/chat", {"message": payload}),
+            (f"{base_url}/v1/chat/completions", {"messages": [{"role": "user", "content": payload}], "max_tokens": 500}),
+            (f"{base_url}", {"message": payload}),  # Try root
+        ]
 
     def try_post(target_url, body):
         """Try a single POST request. Returns (success: bool, result: str)"""
@@ -58,8 +67,8 @@ def send_to_target(url: str, payload: str, auth_token: str = None, timeout: int 
                     if content is not None:
                         return True, str(content).strip()
 
-                # Try common response keys
-                for key in ["response", "message", "text", "answer", "reply"]:
+                # Try common response keys (added "reply" for DSA bot)
+                for key in ["reply", "response", "message", "text", "answer"]:
                     val = data.get(key)
                     if val is not None:
                         return True, str(val).strip()

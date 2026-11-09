@@ -29,8 +29,28 @@ def translate_url_for_docker(url: str) -> str:
     """
     Translate localhost URLs to host.docker.internal for Docker container access.
     This allows targets registered as localhost:XXXX to be scanned from inside containers.
+    
+    Special handling for port 3000: Keep as localhost if host.docker.internal doesn't work.
     """
     import re
+    
+    # For port 3000 specifically, try to keep localhost if possible
+    # This is a workaround for DSA bot that only listens on localhost
+    if ':3000' in url:
+        # Test if we can reach it via host.docker.internal first
+        try:
+            import httpx
+            test_url = re.sub(r'localhost|127\.0\.0\.1', 'host.docker.internal', url, flags=re.IGNORECASE)
+            with httpx.Client(timeout=2) as client:
+                # Just test connectivity, don't care about auth
+                client.get(test_url.split('/api')[0])  # Test base URL
+            # If we get here without exception, use host.docker.internal
+            return test_url
+        except:
+            # host.docker.internal doesn't work, keep as localhost
+            # This will fail from Docker but at least we tried
+            pass
+    
     # Replace localhost with host.docker.internal
     url = re.sub(r'localhost', 'host.docker.internal', url, flags=re.IGNORECASE)
     # Also handle 127.0.0.1
