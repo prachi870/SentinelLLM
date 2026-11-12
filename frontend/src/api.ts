@@ -1,10 +1,11 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8001/api/v1';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API_URL = `${API_BASE}/api/v1`;
 const TOKEN_KEY = 'sentinelloop_auth_token';
 
 const client = axios.create({
-  baseURL: API_BASE,
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
