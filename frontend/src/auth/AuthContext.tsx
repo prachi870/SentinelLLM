@@ -50,6 +50,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await axios.post(`${API_BASE}/auth/login`, {
         email,
         password
+      }, {
+        withCredentials: true  // Enable CORS credentials
       });
       console.log('✅ Login response received:', response.status);
       const newToken = response.data.access_token;
