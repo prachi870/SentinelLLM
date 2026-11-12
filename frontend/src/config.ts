@@ -5,7 +5,7 @@
  */
 
 // Determine API URL based on environment
-const getApiUrl = (): string => {
+export const getApiUrl = (): string => {
   // For local development
   if (import.meta.env.DEV) {
     return 'http://localhost:8001';
