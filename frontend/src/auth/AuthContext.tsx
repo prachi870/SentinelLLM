@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { getApiUrl } from '../config';
 
-const API_BASE = 'http://localhost:8001/api/v1';
+const API_BASE = `${getApiUrl()}/api/v1`;
 const TOKEN_KEY = 'sentinelloop_auth_token';
 
 interface AuthContextValue {
