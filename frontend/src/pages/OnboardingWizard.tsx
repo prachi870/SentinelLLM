@@ -203,7 +203,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
 
   const handleComplete = () => {
     localStorage.setItem('onboarding_completed', 'true');
-    showToast.success('Welcome to SentinelLoop! 🎉');
+    showToast.success('Welcome to Sentinel LLM! 🎉');
     onComplete();
     
     // Navigate to findings if scan had results

@@ -49,12 +49,12 @@ export default function Login() {
         className="w-full max-w-sm"
       >
         <Link to="/" className="flex items-center justify-center gap-2 font-display text-lg font-extrabold mb-8">
-          <span className="text-xl">🛡️</span> SentinelLoop
+          <span className="text-xl">🛡️</span> Sentinel LLM
         </Link>
 
         <div className="p-7 rounded-2xl bg-white border border-border shadow-xl">
           <h1 className="font-display text-xl font-bold mb-1">Welcome back</h1>
-          <p className="text-sm text-ink-soft mb-6">Log in to your SentinelLoop dashboard.</p>
+          <p className="text-sm text-ink-soft mb-6">Log in to your Sentinel LLM dashboard.</p>
 
           <button
             type="button"

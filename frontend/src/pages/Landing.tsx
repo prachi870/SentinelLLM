@@ -58,7 +58,7 @@ const PROBLEMS = [
 ];
 
 const STEPS = [
-  { n: '01', title: 'Register Target', body: 'Point SentinelLoop at your chatbot endpoint and verify ownership in seconds.' },
+  { n: '01', title: 'Register Target', body: 'Point Sentinel LLM at your chatbot endpoint and verify ownership in seconds.' },
   { n: '02', title: 'Real-Time Guard', body: 'Every incoming prompt is scanned — rules, semantic similarity, and an LLM judge decide BLOCK or ALLOW before it reaches your model.' },
   { n: '03', title: 'Automated Red-Team Scan', body: '15 OWASP LLM Top-10 attack categories run against your deployed chatbot, each finding mapped to a concrete code fix.' },
   { n: '04', title: 'Auto-Retest + CI/CD Gate', body: 'Redeploy your fix and the watcher retests automatically. The same gate wires into GitHub Actions to block merges.' },
@@ -69,7 +69,7 @@ const FEATURES = [
   { icon: '🧠', title: 'Explainable LLM Judge', body: 'Ambiguous cases get a reasoned verdict from an LLM judge, not just an opaque score — every decision has a stated reason.' },
   { icon: '🕸️', title: 'Semantic Similarity Engine', body: 'A 400+ prompt attack corpus lets the guard recognize novel phrasings of known injection and jailbreak patterns.' },
   { icon: '🔁', title: 'Auto-Retest on Redeploy', body: 'A fingerprint watcher detects when you ship a fix and automatically re-verifies every open finding — no manual re-scan.' },
-  { icon: '🚦', title: 'CI/CD Security Gate', body: 'Wire SentinelLoop into GitHub Actions and block merges the moment a critical or high-severity finding appears.' },
+  { icon: '🚦', title: 'CI/CD Security Gate', body: 'Wire Sentinel LLM into GitHub Actions and block merges the moment a critical or high-severity finding appears.' },
   { icon: '📋', title: 'Compliance Mapping', body: 'Every finding maps to OWASP LLM Top 10, EU AI Act, NIST AI RMF, and ISO/IEC 42001 — guidance, not legal advice.' },
 ];
 
@@ -93,7 +93,7 @@ export default function Landing() {
               <span className="text-base">🛡️</span>
             </div>
             <div>
-              <span className="font-display text-base font-bold text-ink">SentinelLoop</span>
+              <span className="font-display text-base font-bold text-ink">Sentinel LLM</span>
               <span className="ml-2 text-[10px] uppercase font-bold tracking-widest text-accent-indigo bg-accent-indigo/10 px-2 py-0.5 rounded border border-accent-indigo/20">
                 v1.0
               </span>
@@ -175,7 +175,7 @@ export default function Landing() {
             </h1>
 
             <p className="mt-6 max-w-xl text-base leading-relaxed text-ink-soft">
-              SentinelLoop sits between your users and your LLM in real time, scans every prompt for
+              Sentinel LLM sits between your users and your LLM in real time, scans every prompt for
               injection and jailbreak attempts, and automatically red-teams your chatbot for the
               vulnerabilities your team didn't know to test for.
             </p>
@@ -325,7 +325,7 @@ export default function Landing() {
           </Link>
         </div>
         <p className="mt-12 text-xs text-ink-soft/70 font-mono">
-          🛡️ SentinelLoop — Attack → Fix → Auto-Verify → CI/CD Gate.
+          🛡️ Sentinel LLM — Attack → Fix → Auto-Verify → CI/CD Gate.
         </p>
       </footer>
     </div>

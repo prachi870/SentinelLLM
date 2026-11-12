@@ -4,7 +4,7 @@ import { Float } from '@react-three/drei';
 import * as THREE from 'three';
 
 /**
- * SentinelLoop's 3D hero visual — a wireframe "attack surface" shell around a
+ * Sentinel LLM's 3D hero visual — a wireframe "attack surface" shell around a
  * solid core, swept by a scanning ring. It is deliberately built from cheap
  * primitives only (icosahedron, octahedron, torus — a few hundred triangles
  * total), no imported models/textures, so it never blocks first paint:

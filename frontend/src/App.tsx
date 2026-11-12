@@ -48,7 +48,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-6">
           <div className="flex items-center gap-3 shrink-0">
             <span className="text-xl font-bold bg-gradient-to-r from-accent-indigo via-accent-purple to-accent-pink bg-clip-text text-transparent">
-              🛡️ SentinelLoop
+              🛡️ Sentinel LLM
             </span>
           </div>
 

@@ -2,9 +2,9 @@ import { motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 
 /**
- * "Cut and scattered" page-load reveal, SentinelLoop-themed.
+ * "Cut and scattered" page-load reveal, Sentinel LLM-themed.
  *
- * A light canvas cover with the SentinelLoop mark holds for a beat, then
+ * A light canvas cover with the Sentinel LLM mark holds for a beat, then
  * gets sliced into vertical strips that fly apart — each strip alternating
  * left/right drift, its own rotation and delay — rather than sliding away
  * as one flat sheet. Still transform-only per strip (translate + rotate),
@@ -84,7 +84,7 @@ export function ScanIntro({ onComplete }: { onComplete: () => void }) {
         />
       ))}
 
-      {/* SentinelLoop mark — fades/scales out quickly as the cuts start */}
+      {/* Sentinel LLM mark — fades/scales out quickly as the cuts start */}
       <motion.div
         className="absolute inset-0 flex items-center justify-center"
         initial={{ opacity: 1, scale: 1 }}
@@ -99,7 +99,7 @@ export function ScanIntro({ onComplete }: { onComplete: () => void }) {
           >
             🛡️
           </motion.div>
-          <p className="font-display text-lg font-bold tracking-tight text-white">SentinelLoop</p>
+          <p className="font-display text-lg font-bold tracking-tight text-white">Sentinel LLM</p>
         </div>
       </motion.div>
     </div>
