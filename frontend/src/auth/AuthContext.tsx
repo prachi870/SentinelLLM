@@ -46,16 +46,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('🔐 Login attempt:', { email, apiBase: API_BASE });
       const response = await axios.post(`${API_BASE}/auth/login`, {
         email,
         password
       });
+      console.log('✅ Login response received:', response.status);
       const newToken = response.data.access_token;
       setToken(newToken);
       localStorage.setItem(TOKEN_KEY, newToken);
       return true;
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('❌ Login failed:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Error details:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+        });
+      }
       return false;
     }
   };
