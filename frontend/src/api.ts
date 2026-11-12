@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VERCEL_URL || 'http://localhost:8001';
 const API_URL = `${API_BASE}/api/v1`;
 const TOKEN_KEY = 'sentinelloop_auth_token';
 
