@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { api, Finding, Target } from '../api';
 import { useSSE } from '../hooks/useSSE';
 import { showToast } from '../utils/toast';
+import { getApiUrl } from '../config';
 
 export default function Findings() {
   const [searchParams] = useSearchParams();
@@ -152,7 +153,7 @@ export default function Findings() {
             {/* PDF Report Download Button - show if scan exists */}
             {findings.length > 0 && findings[0].scan_id && (
               <a
-                href={`http://localhost:8001/api/v1/reports/scans/${findings[0].scan_id}/pdf`}
+                href={`${getApiUrl()}/api/v1/reports/scans/${findings[0].scan_id}/pdf`}
                 download
                 className="px-4 py-2.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-sm"
               >

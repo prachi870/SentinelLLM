@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { api, Finding } from '../api';
+import { getApiUrl } from '../config';
 
 interface ScanData {
   id: string;
@@ -265,7 +266,7 @@ export default function FullySecure() {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a
-            href={`http://localhost:8001/api/v1/reports/scans/${scanId}/pdf`}
+            href={`${getApiUrl()}/api/v1/reports/scans/${scanId}/pdf`}
             download
             className={`px-8 py-4 rounded-lg font-semibold shadow-lg transition transform hover:scale-105 text-center ${
               isSecure

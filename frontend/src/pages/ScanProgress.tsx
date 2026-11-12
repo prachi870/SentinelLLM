@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api, Scan } from '../api';
 import { showToast } from '../utils/toast';
+import { getApiUrl } from '../config';
 
 // Attack type display names and order
 const ATTACK_LAYERS = [
@@ -75,7 +76,7 @@ export default function ScanProgress() {
       return;
     }
 
-    const eventSource = new EventSource(`http://localhost:8001/api/v1/scans/${scanId}/stream?token=${token}`);
+    const eventSource = new EventSource(`${getApiUrl()}/api/v1/scans/${scanId}/stream?token=${token}`);
 
     eventSource.onmessage = (event) => {
       try {

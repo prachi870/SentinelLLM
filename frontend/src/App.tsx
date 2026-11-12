@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink, useNavigate } from 're
 import { useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, ProtectedRoute, useAuth } from './auth/AuthContext';
+import { getApiUrl } from './config';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -67,7 +68,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               ? Help
             </button>
             <a
-              href="http://localhost:8001/docs"
+              href={`${getApiUrl()}/docs`}
               target="_blank"
               rel="noreferrer"
               className="text-xs font-semibold text-ink-soft hover:text-ink transition"
