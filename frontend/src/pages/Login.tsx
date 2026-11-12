@@ -30,12 +30,15 @@ export default function Login() {
   };
 
   const handleDemo = async () => {
+    console.log('🔐 Demo login clicked - attempting login...');
     setLoading(true);
     const success = await login(demoCredentials.username, demoCredentials.password);
     setLoading(false);
     if (success) {
+      console.log('✅ Demo login successful!');
       navigate(from, { replace: true });
     } else {
+      console.error('❌ Demo login failed');
       setError('Demo login failed. Please check if backend is running.');
     }
   };
