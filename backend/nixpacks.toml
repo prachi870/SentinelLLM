@@ -1,0 +1,13 @@
+[phases.setup]
+nixPkgs = ["python311", "gcc", "postgresql"]
+
+[phases.install]
+cmds = [
+    "pip install --upgrade pip",
+    "pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu",
+    "pip install --no-cache-dir -r requirements.txt",
+    "pip install --no-cache-dir --no-deps fastapi==0.111.0"
+]
+
+[start]
+cmd = "uvicorn main:app --host 0.0.0.0 --port $PORT"
