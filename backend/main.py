@@ -74,6 +74,8 @@ app.add_middleware(
         "http://localhost:5173",
         "https://*.vercel.app",
         "https://sentinel-llm.vercel.app",
+        "https://sentinelllm.vercel.app",
+        "https://sentinel-llm-prachiwork295s-projects.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
