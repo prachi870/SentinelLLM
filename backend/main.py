@@ -21,7 +21,7 @@ from config import settings
 from database import Base, engine
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import api_keys, auth, findings, guard, health, reports, scans, targets, usage
+from routers import api_keys, auth, findings, guard, health, init, reports, scans, targets, usage
 
 logger = logging.getLogger("sentinelloop.main")
 
@@ -83,6 +83,7 @@ app.add_middleware(
 # Register routers under /api/v1
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(init.router, prefix="/api/v1")
 app.include_router(targets.router, prefix="/api/v1")
 app.include_router(api_keys.router, prefix="/api/v1")
 app.include_router(scans.router, prefix="/api/v1")
