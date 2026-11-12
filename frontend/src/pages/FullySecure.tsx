@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
-import { api, Finding, Scan } from '../api';
+import { api, Finding } from '../api';
 
 interface ScanData {
   id: string;

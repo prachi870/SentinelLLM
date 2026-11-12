@@ -97,19 +97,19 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
 function OnboardingWrapper() {
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const { user } = useAuth();
+  const { username } = useAuth();
 
   useEffect(() => {
     // Check if user has completed onboarding
     const hasCompletedOnboarding = localStorage.getItem('onboarding_completed');
     
     // Show onboarding if user is logged in and hasn't completed it
-    if (user && !hasCompletedOnboarding) {
+    if (username && !hasCompletedOnboarding) {
       setShowOnboarding(true);
     } else {
       setShowOnboarding(false);
     }
-  }, [user]);
+  }, [username]);
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
