@@ -77,6 +77,7 @@ app.add_middleware(
         "https://sentinelllm.vercel.app",
         "https://sentinel-llm-prachiwork295s-projects.vercel.app",
         "https://sentinel-llm-git-main-megha.vercel.app",
+        "https://sentinel-llm-git-main-mehga.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
