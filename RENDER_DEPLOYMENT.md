@@ -1,193 +1,74 @@
-# Sentinel LLM - Render Deployment Guide
+# Deploy the backend to Render
 
-## Why Render?
+The repository includes a Render Blueprint at `render.yaml`. It configures the
+FastAPI web service, PostgreSQL, Redis-compatible Key Value, and the Celery
+worker and scheduler.
 
-Render is better than Railway for this project because:
-- ✅ Proper worker support with dedicated process types
-- ✅ Auto-configuration via `render.yaml` (Blueprint)
-- ✅ Free PostgreSQL and Redis included
-- ✅ Simpler environment variable management
-- ✅ Better logging and monitoring
+## Recommended: deploy with the Blueprint
 
-## Quick Deploy (Automatic)
+1. Push the repository to GitHub.
+2. In Render, choose **New → Blueprint** and connect
+   `prachi870/SentinelLLM`.
+3. Review the services and plans, then apply the Blueprint.
+4. When prompted, provide `OPENAI_API_KEY` in the `sentinel-shared`
+   environment group. Render generates `SECRET_KEY` and
+   `TOKEN_ENCRYPTION_KEY`; the group shares the same values with the web
+   service and both workers.
+5. Wait for the services to deploy. The API health endpoint is
+   `https://<backend-service>.onrender.com/api/v1/health/`.
 
-1. **Go to Render**: https://render.com
-2. **Sign up/Login** with your GitHub account
-3. Click **"New +"** → **"Blueprint"**
-4. Connect to repository: `prachi870/SentinelLLM`
-5. **Blueprint Name**: `sentinel-llm`
-6. Click **"Apply"**
+The web service uses `backend` as its root directory, installs
+`backend/requirements.txt`, and starts Uvicorn on Render's `$PORT`. The
+health check verifies database and Redis connectivity. Redis is a Key Value
+service (not a PostgreSQL database), and all three application services use
+the same database and Redis URLs.
 
-Render will automatically:
-- Create PostgreSQL database
-- Create Redis instance
-- Deploy web service (FastAPI)
-- Deploy worker service (Celery)
-- Deploy beat service (Celery Beat)
-- Configure all environment variables
+## Deploy only the web service manually
 
-## After Deployment
+If you don't want to apply the Blueprint, create a **Web Service** from the
+repository with:
 
-### 1. Set API Keys
+- **Runtime:** Python
+- **Root Directory:** `backend`
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
+- **Health Check Path:** `/api/v1/health/`
 
-Go to each service → Environment → Add:
+Create a Render PostgreSQL database and a Render Key Value instance in the
+same region. Add these environment variables to the web service:
 
-```bash
-OPENAI_API_KEY=your_groq_or_openai_key_here
-```
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | PostgreSQL internal connection URL |
+| `REDIS_URL` | Key Value internal connection URL |
+| `OPENAI_API_KEY` | Your OpenAI-compatible provider key |
+| `SECRET_KEY` | A securely generated random value |
+| `TOKEN_ENCRYPTION_KEY` | A separate securely generated random value |
+| `ENVIRONMENT` | `production` |
+| `WATCHER_INTERVAL_SECONDS` | `300` |
+| `MAX_LLM_CALLS_PER_SCAN` | `50` |
 
-### 2. Get Service URLs
+If you enable background scans, create two **Background Worker** services
+from the same repository with `backend` as the root directory and the same
+build command and environment variables:
 
-- **Web Service**: `https://sentinel-backend.onrender.com`
-- Copy this URL for Vercel frontend configuration
+- Worker start command: `python -m celery -A tasks.celery_app worker --queues=scans,default --loglevel=info`
+- Beat start command: `python -m celery -A tasks.celery_app beat --loglevel=info`
 
-### 3. Update Vercel
+Keep the database URL, Redis URL, API key, and both secret values identical
+across the web service and workers. Without the Celery worker, queued scans
+won't be processed; without Beat, scheduled watcher checks won't run.
 
-In Vercel project settings → Environment Variables:
-```bash
-VITE_API_URL=https://sentinel-backend.onrender.com
-```
+## Connect the frontend
 
-### 4. Create Demo User
+Set `VITE_API_URL` in the frontend's hosting provider to the deployed backend
+URL (for example, `https://<backend-service>.onrender.com`) and redeploy the
+frontend. The backend allows Vercel subdomains and localhost by default; add
+your frontend's custom domain to the backend CORS configuration if needed.
 
-```bash
-curl -X POST https://sentinel-backend.onrender.com/api/v1/init/demo-user
-```
+## Verify the deployment
 
-## Manual Deploy (Alternative)
-
-If Blueprint doesn't work, create services manually:
-
-### 1. Create PostgreSQL Database
-
-- Name: `sentinel-db`
-- Database: `sentinelloop`
-- User: `sentinel`
-- Plan: Free
-
-Copy the **Internal Database URL**
-
-### 2. Create Redis
-
-- Name: `sentinel-redis`
-- Plan: Free
-
-Copy the **Internal Redis URL**
-
-### 3. Create Web Service
-
-- **Name**: `sentinel-backend`
-- **Environment**: Python 3
-- **Build Command**:
-  ```
-  cd backend && pip install -r requirements.txt && python -m spacy download en_core_web_sm
-  ```
-- **Start Command**:
-  ```
-  cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
-  ```
-- **Health Check Path**: `/api/v1/health`
-
-**Environment Variables**:
-```bash
-DATABASE_URL=<paste internal postgres URL>
-REDIS_URL=<paste internal redis URL>
-OPENAI_API_KEY=<your API key>
-SECRET_KEY=<generate with: python -c "import secrets; print(secrets.token_hex(32))">
-TOKEN_ENCRYPTION_KEY=<generate with: python -c "import secrets; print(secrets.token_hex(32))">
-ENVIRONMENT=production
-WATCHER_INTERVAL_SECONDS=300
-MAX_LLM_CALLS_PER_SCAN=50
-```
-
-### 4. Create Worker Service
-
-- **Name**: `sentinel-worker`
-- **Environment**: Python 3
-- **Build Command**: Same as web service
-- **Start Command**:
-  ```
-  cd backend && python -m celery -A tasks.celery_app worker --queues=scans,default --loglevel=info
-  ```
-
-**Environment Variables**: Same as web service (copy from web service)
-
-### 5. Create Beat Service
-
-- **Name**: `sentinel-beat`
-- **Environment**: Python 3
-- **Build Command**: Same as web service
-- **Start Command**:
-  ```
-  cd backend && python -m celery -A tasks.celery_app beat --loglevel=info
-  ```
-
-**Environment Variables**: Same as web service
-
-## Verification
-
-### Check Health
-
-```bash
-curl https://sentinel-backend.onrender.com/api/v1/health
-```
-
-Should return:
-```json
-{"status":"ok","database":"ok","redis":"ok"}
-```
-
-### Test Login
-
-```bash
-curl -X POST https://sentinel-backend.onrender.com/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@sentinelloop.ai","password":"testpass123"}'
-```
-
-Should return JWT token.
-
-## Troubleshooting
-
-### Worker/Beat Not Starting
-
-Check logs for `ModuleNotFoundError`. If you see it, the build command needs to run:
-```
-cd backend && pip install -r requirements.txt
-```
-
-### Database Connection Failed
-
-Make sure you're using the **Internal Database URL**, not the external one. It should look like:
-```
-postgresql://sentinel:password@dpg-xxxxx/sentinelloop
-```
-
-### Redis Connection Failed
-
-Use **Internal Redis URL**:
-```
-redis://red-xxxxx:6379
-```
-
-## Cost
-
-Render Free Tier includes:
-- ✅ 750 hours/month of web service
-- ✅ PostgreSQL (90 days retention)
-- ✅ Redis (25MB storage)
-- ✅ Background workers (750 hours total)
-
-Perfect for demo/testing. Upgrade to Starter ($7/month per service) for production.
-
-## Comparison: Render vs Railway
-
-| Feature | Render | Railway |
-|---------|--------|---------|
-| Worker Support | ✅ Native | ⚠️ Manual config |
-| Auto-config | ✅ Blueprint | ❌ Manual only |
-| Free Tier | ✅ 750hrs | ✅ $5 credit |
-| Documentation | ✅ Excellent | ⚠️ Limited |
-| Build Speed | ⚠️ Slower | ✅ Faster |
-
-**Recommendation**: Use Render for this project.
+Open `https://<backend-service>.onrender.com/api/v1/health/`. A healthy
+response reports `"status": "ok"` and `"database": "ok"` / `"redis": "ok"`.
+If the service exits during startup, inspect the Render service logs and
+confirm that the required environment variables are set.

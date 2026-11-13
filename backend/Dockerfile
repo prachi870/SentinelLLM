@@ -22,5 +22,4 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Start command (download spacy model if needed, then start server)
-CMD sh -c "python -m spacy download en_core_web_sm 2>/dev/null || true && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"
+CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]

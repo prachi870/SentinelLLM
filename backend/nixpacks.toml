@@ -6,9 +6,7 @@ aptPkgs = ["libpq-dev"]
 cmds = [
     "pip install --upgrade pip",
     "pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu",
-    "pip install --no-cache-dir -r requirements.txt",
-    "pip install --no-cache-dir --no-deps fastapi==0.111.0",
-    "python -m spacy download en_core_web_sm"
+    "pip install --no-cache-dir -r requirements.txt"
 ]
 
 [start]

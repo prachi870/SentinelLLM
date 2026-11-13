@@ -1,5 +1,5 @@
 # Core web framework
-# fastapi==0.111.0 (installed via --no-deps in Dockerfile to avoid typer conflict)
+fastapi==0.110.3
 starlette>=0.37.2,<0.38.0
 uvicorn[standard]==0.30.1
 

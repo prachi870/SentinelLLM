@@ -7,30 +7,21 @@ services:
     region: oregon
     plan: free
     rootDir: backend
-    buildCommand: pip install -r requirements.txt && python -m spacy download en_core_web_sm
+    buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /api/v1/health
+    healthCheckPath: /api/v1/health/
+    envVarGroups:
+      - name: sentinel-shared
     envVars:
       - key: DATABASE_URL
         fromDatabase:
           name: sentinel-db
           property: connectionString
       - key: REDIS_URL
-        fromDatabase:
+        fromService:
           name: sentinel-redis
+          type: keyvalue
           property: connectionString
-      - key: ENVIRONMENT
-        value: production
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: SECRET_KEY
-        generateValue: true
-      - key: TOKEN_ENCRYPTION_KEY
-        generateValue: true
-      - key: WATCHER_INTERVAL_SECONDS
-        value: 300
-      - key: MAX_LLM_CALLS_PER_SCAN
-        value: 50
 
   # Celery Worker
   - type: worker
@@ -40,29 +31,20 @@ services:
     region: oregon
     plan: free
     rootDir: backend
-    buildCommand: pip install -r requirements.txt && python -m spacy download en_core_web_sm
+    buildCommand: pip install -r requirements.txt
     startCommand: python -m celery -A tasks.celery_app worker --queues=scans,default --loglevel=info
+    envVarGroups:
+      - name: sentinel-shared
     envVars:
       - key: DATABASE_URL
         fromDatabase:
           name: sentinel-db
           property: connectionString
       - key: REDIS_URL
-        fromDatabase:
+        fromService:
           name: sentinel-redis
+          type: keyvalue
           property: connectionString
-      - key: ENVIRONMENT
-        value: production
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: SECRET_KEY
-        sync: false
-      - key: TOKEN_ENCRYPTION_KEY
-        sync: false
-      - key: WATCHER_INTERVAL_SECONDS
-        value: 300
-      - key: MAX_LLM_CALLS_PER_SCAN
-        value: 50
 
   # Celery Beat (Scheduler)
   - type: worker
@@ -72,29 +54,27 @@ services:
     region: oregon
     plan: free
     rootDir: backend
-    buildCommand: pip install -r requirements.txt && python -m spacy download en_core_web_sm
+    buildCommand: pip install -r requirements.txt
     startCommand: python -m celery -A tasks.celery_app beat --loglevel=info
+    envVarGroups:
+      - name: sentinel-shared
     envVars:
       - key: DATABASE_URL
         fromDatabase:
           name: sentinel-db
           property: connectionString
       - key: REDIS_URL
-        fromDatabase:
+        fromService:
           name: sentinel-redis
+          type: keyvalue
           property: connectionString
-      - key: ENVIRONMENT
-        value: production
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: SECRET_KEY
-        sync: false
-      - key: TOKEN_ENCRYPTION_KEY
-        sync: false
-      - key: WATCHER_INTERVAL_SECONDS
-        value: 300
-      - key: MAX_LLM_CALLS_PER_SCAN
-        value: 50
+
+  # Redis-compatible broker and result backend for Celery.
+  - type: keyvalue
+    name: sentinel-redis
+    region: oregon
+    plan: free
+    ipAllowList: []
 
 databases:
   - name: sentinel-db
@@ -103,6 +83,18 @@ databases:
     plan: free
     region: oregon
 
-  - name: sentinel-redis
-    plan: free
-    region: oregon
+envVarGroups:
+  - name: sentinel-shared
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: TOKEN_ENCRYPTION_KEY
+        generateValue: true
+      - key: WATCHER_INTERVAL_SECONDS
+        value: 300
+      - key: MAX_LLM_CALLS_PER_SCAN
+        value: 50
