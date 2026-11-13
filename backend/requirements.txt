@@ -10,7 +10,7 @@ psycopg2-binary==2.9.9
 
 # Task queue
 celery==5.4.0
-redis==5.0.4
+redis==6.1.0
 
 # HTTP client (for ownership verification + attack sending)
 httpx==0.27.0
