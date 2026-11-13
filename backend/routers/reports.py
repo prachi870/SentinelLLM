@@ -52,7 +52,7 @@ def get_audit_report(scan_id: str, db: Session = Depends(get_db)):
     - layer_name: e.g. "Layer 1 — Prompt Injection"
     - prompts_tested: number of prompts tested (up to MAX_PROMPTS_PER_TYPE)
     - worst_confidence: highest detection confidence seen
-    - verdict: "PASSED" (bypassed) or "FAILED" (blocked)
+    - verdict: "PASSED" (blocked), "FAILED" (bypass found), or "INCONCLUSIVE"
     - timestamp: when the attack was tested
     """
     # Verify scan exists

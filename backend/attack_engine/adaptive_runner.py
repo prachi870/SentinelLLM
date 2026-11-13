@@ -86,10 +86,13 @@ def run_adaptive_attack(
             layer_failed=detection.get("layer_failed"),
             detection_method=detection["method"],
             raw_judge_reason=detection.get("reason"),
+            prompts_tested=i + 1,
         )
 
         # If security bypass is detected (success=True), return immediately
         if result.success:
+            return result
+        if result.layer_failed == "http_error":
             return result
 
         if not best_result or result.confidence > best_result.confidence:

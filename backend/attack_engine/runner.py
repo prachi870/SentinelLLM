@@ -113,7 +113,11 @@ def save_audit_log(
         db = SessionLocal()
         
         layer_name = LAYER_NAMES.get(attack_type, f"Layer — {attack_type.value}")
-        verdict = "FAILED" if result.success else "PASSED"
+        verdict = (
+            "INCONCLUSIVE"
+            if result.layer_failed == "http_error"
+            else "FAILED" if result.success else "PASSED"
+        )
         
         attack_log = AttackLog(
             id=uuid.uuid4(),
@@ -171,11 +175,24 @@ def run_attack(
             final_prompt = results[-1]["prompt"] if results else ""
             final_response = results[-1]["response"] if results else ""
 
-            detection = detect(
-                attack_type=attack_type,
-                payload=final_prompt,
-                response=final_response,
-                scan_id=scan_id,
+            has_transport_error = any(
+                item["response"].startswith("[ERROR:") for item in results
+            )
+            detection = (
+                {
+                    "success": False,
+                    "confidence": 0.0,
+                    "method": DetectionMethod.rule,
+                    "layer_failed": "http_error",
+                    "reason": "The target could not be reached during the multi-turn test.",
+                }
+                if has_transport_error
+                else detect(
+                    attack_type=attack_type,
+                    payload=final_prompt,
+                    response=final_response,
+                    scan_id=scan_id,
+                )
             )
 
             # Prefix payload with a visible multi-turn marker + condensed conversation
@@ -194,7 +211,7 @@ def run_attack(
                 detection_method=detection["method"],
                 raw_judge_reason=detection.get("reason"),
             )
-            
+
             # Save audit log (multi-turn = 1 conversation tested)
             save_audit_log(scan_id, attack_type, result, prompts_tested=1)
             
@@ -213,7 +230,12 @@ def run_attack(
         )
         
         # Save audit log (adaptive = 3 iterations tested)
-        save_audit_log(scan_id, attack_type, result, prompts_tested=3)
+        save_audit_log(
+            scan_id,
+            attack_type,
+            result,
+            prompts_tested=result.prompts_tested,
+        )
         
         return result
 
@@ -258,14 +280,18 @@ def run_attack(
     # Filter to single-turn prompts only (skip multi-turn entries)
     single_turn_prompts = [p for p in prompts if "prompt" in p and "turns" not in p]
     prompts_to_test = single_turn_prompts[:MAX_PROMPTS_PER_TYPE]
-    prompts_tested_count = len(prompts_to_test)
+    prompts_tested_count = 0
     
     worst_result = None
+    last_result = None
+    last_valid_result = None
+    had_transport_error = False
     
     for prompt_obj in prompts_to_test:
         payload = prompt_obj.get("prompt", "")
         if not payload:
             continue
+        prompts_tested_count += 1
             
         response = send_to_target(url=target_url, payload=payload, auth_token=auth_token)
         detection = detect(
@@ -284,7 +310,15 @@ def run_attack(
             layer_failed=detection.get("layer_failed"),
             detection_method=detection["method"],
             raw_judge_reason=detection.get("reason"),
+            prompts_tested=prompts_tested_count,
         )
+        last_result = current_result
+
+        if current_result.layer_failed == "http_error":
+            had_transport_error = True
+            break
+
+        last_valid_result = current_result
         
         # Update worst_result if this attack is more severe
         if current_result.success:
@@ -293,26 +327,17 @@ def run_attack(
     
     # If no successful attack found, return the last tested result (failed attempt)
     if worst_result is None:
-        # Return safe result
-        last_prompt = prompts_to_test[-1]["prompt"] if prompts_to_test else "Hello"
-        response = send_to_target(url=target_url, payload=last_prompt, auth_token=auth_token)
-        detection = detect(attack_type=attack_type, payload=last_prompt, response=response, scan_id=scan_id)
-        result = AttackResult(
-            attack_type=attack_type,
-            payload=last_prompt,
-            response=response,
-            success=detection["success"],
-            confidence=detection["confidence"],
-            layer_failed=detection.get("layer_failed"),
-            detection_method=detection["method"],
-            raw_judge_reason=detection.get("reason"),
-        )
+        result = last_result if had_transport_error else last_valid_result
+        if result:
+            result.prompts_tested = prompts_tested_count
         
         # Save audit log
         save_audit_log(scan_id, attack_type, result, prompts_tested=prompts_tested_count)
         
         return result
     
+    worst_result.prompts_tested = prompts_tested_count
+
     # Save audit log with worst-case result
     save_audit_log(scan_id, attack_type, worst_result, prompts_tested=prompts_tested_count)
     

@@ -92,6 +92,7 @@ class AttackResult(BaseModel):
     layer_failed: Optional[str] = None
     detection_method: DetectionMethod = DetectionMethod.rule
     raw_judge_reason: Optional[str] = None
+    prompts_tested: int = 1
 
 
 # ---------------------------------------------------------------------------

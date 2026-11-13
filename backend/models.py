@@ -266,7 +266,7 @@ class AttackLog(Base):
     layer_name = Column(String(255), nullable=False)  # e.g. "Layer 1 — Prompt Injection"
     prompt_used = Column(Text, nullable=False)  # Exact prompt sent to target
     chatbot_response = Column(Text, nullable=False)  # Exact response received
-    verdict = Column(String(16), nullable=False)  # "PASSED" (blocked) or "FAILED" (vulnerable)
+    verdict = Column(String(16), nullable=False)  # "PASSED", "FAILED", or "INCONCLUSIVE"
     confidence = Column(Float, nullable=False, default=0.0)  # Detection confidence (0.0-1.0)
     detection_method = Column(String(64), nullable=False)  # "rule" | "ml" | "llm_judge"
     prompts_tested = Column(Integer, default=1, nullable=False)  # Count for this attack type

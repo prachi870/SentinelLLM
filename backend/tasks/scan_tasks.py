@@ -106,6 +106,7 @@ def run_full_scan(self, scan_id: str, target_id: str):
     _redis.delete(f"llm_calls:{scan_id}")
 
     try:
+        inconclusive_attacks = 0
         # Bound attack concurrency to avoid exhausting memory on small instances.
         with ThreadPoolExecutor(max_workers=settings.SCAN_ATTACK_CONCURRENCY) as executor:
             # Submit all attack tasks to thread pool
@@ -126,6 +127,9 @@ def run_full_scan(self, scan_id: str, target_id: str):
                 
                 try:
                     result = future.result()
+                    is_inconclusive = result.layer_failed == "http_error"
+                    if is_inconclusive:
+                        inconclusive_attacks += 1
                     
                     # 2. Record finding if attack succeeded (vulnerability found)
                     if result.success:
@@ -182,7 +186,10 @@ def run_full_scan(self, scan_id: str, target_id: str):
                         {
                             "attack_type": attack_type.value,
                             "success": result.success,
+                            "inconclusive": is_inconclusive,
+                            "reason": result.raw_judge_reason if is_inconclusive else None,
                             "confidence": result.confidence,
+                            "prompts_tested": result.prompts_tested,
                             "completed_attacks": scan.completed_attacks,
                             "total_attacks": scan.total_attacks,
                         },
@@ -191,23 +198,39 @@ def run_full_scan(self, scan_id: str, target_id: str):
                 except Exception as attack_exc:
                     # Individual attack failure shouldn't crash entire scan
                     # Log and continue with other attacks
+                    inconclusive_attacks += 1
                     publish_sse_event(
                         scan_id,
-                        "attack_error",
+                        "attack_complete",
                         {
                             "attack_type": attack_type.value,
-                            "error": str(attack_exc),
+                            "success": False,
+                            "inconclusive": True,
+                            "reason": str(attack_exc),
+                            "confidence": 0.0,
+                            "completed_attacks": scan.completed_attacks + 1,
+                            "total_attacks": scan.total_attacks,
                         },
                     )
                     scan.completed_attacks += 1
                     db.commit()
 
         # Mark scan done
-        scan.status = ScanStatus.done
+        scan.status = (
+            ScanStatus.partial if inconclusive_attacks else ScanStatus.done
+        )
         scan.completed_at = datetime.utcnow()
         db.commit()
 
-        publish_sse_event(scan_id, "scan_done", {"scan_id": scan_id})
+        publish_sse_event(
+            scan_id,
+            "scan_done",
+            {
+                "scan_id": scan_id,
+                "status": scan.status.value,
+                "inconclusive_attacks": inconclusive_attacks,
+            },
+        )
 
     except Exception as exc:
         db.rollback()

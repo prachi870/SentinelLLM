@@ -29,7 +29,7 @@ from reportlab.platypus import (
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
 
 from contracts import Severity
-from models import Scan, Target, Finding, AttackLog
+from models import Scan, ScanStatus, Target, Finding, AttackLog
 
 
 class PDFReportBuilder:
@@ -144,7 +144,10 @@ class PDFReportBuilder:
         low_count = len([f for f in self.findings if f.severity == Severity.low])
         total_findings = len(self.findings)
 
-        if total_findings == 0:
+        if self.scan.status in (ScanStatus.partial, ScanStatus.failed):
+            verdict = "⚠️ SCAN INCONCLUSIVE"
+            verdict_color = colors.HexColor("#f59e0b")
+        elif total_findings == 0:
             verdict = "✅ FULLY SECURE"
             verdict_color = colors.HexColor("#22c55e")
         elif critical_count > 0:
@@ -217,7 +220,13 @@ class PDFReportBuilder:
         self.story.append(Paragraph("Executive Summary", self.styles["SectionHeading"]))
         self.story.append(Spacer(1, 0.1 * inch))
 
-        if len(self.findings) == 0:
+        if self.scan.status in (ScanStatus.partial, ScanStatus.failed):
+            summary_text = (
+                "One or more tests did not complete successfully. "
+                "<b>No security conclusion can be made from this scan.</b> Confirm the target is "
+                "reachable from the scanner and review the audit trail before rerunning."
+            )
+        elif len(self.findings) == 0:
             summary_text = (
                 "This security audit tested your chatbot against 15 OWASP LLM Top 10 attack categories, "
                 f"with a total of {sum(log.prompts_tested for log in self.audit_logs if log.prompts_tested):,} attack prompts. "
@@ -286,7 +295,11 @@ class PDFReportBuilder:
 
         for log in sorted(self.audit_logs, key=lambda l: l.created_at or datetime.min):
             # Layer heading
-            verdict_icon = "✅" if log.verdict == "PASSED" else "❌"
+            verdict_icon = (
+                "⚠️" if log.verdict == "INCONCLUSIVE"
+                else "✅" if log.verdict == "PASSED"
+                else "❌"
+            )
             self.story.append(
                 Paragraph(
                     f"{verdict_icon} {log.layer_name} — {log.verdict}",

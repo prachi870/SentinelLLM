@@ -29,7 +29,13 @@ export default function FullySecure() {
 
   // Calculate security metrics
   const vulnerabilityCount = findings.length;
-  const isSecure = vulnerabilityCount === 0;
+  const isInconclusive = !scan || scan.status === 'partial' || scan.status === 'failed';
+  const isSecure = scan?.status === 'done' && vulnerabilityCount === 0;
+  const resultTone = isInconclusive
+    ? 'amber'
+    : isSecure
+      ? 'emerald'
+      : 'red';
   
   const criticalCount = findings.filter(f => f.severity === 'critical').length;
   const highCount = findings.filter(f => f.severity === 'high').length;
@@ -81,7 +87,13 @@ export default function FullySecure() {
           
           // Log final state
           const isVulnerable = scanFindings.length > 0;
-          console.log(isVulnerable ? '🔴 VULNERABLE CHATBOT - Should show RED OOPS page' : '🟢 SECURE CHATBOT - Should show GREEN page');
+          console.log(
+            scanData.status === 'partial' || scanData.status === 'failed'
+              ? '🟠 INCONCLUSIVE SCAN'
+              : isVulnerable
+                ? '🔴 VULNERABLE CHATBOT'
+                : '🟢 SECURE CHATBOT'
+          );
         }
         
         setLoading(false);
@@ -143,61 +155,69 @@ export default function FullySecure() {
 
   return (
     <div className={`min-h-screen flex items-center justify-center p-6 ${
-      isSecure 
-        ? 'bg-gradient-to-br from-emerald-50 via-white to-cyan-50' 
-        : 'bg-gradient-to-br from-red-50 via-white to-orange-50'
+      resultTone === 'emerald'
+        ? 'bg-gradient-to-br from-emerald-50 via-white to-cyan-50'
+        : resultTone === 'amber'
+          ? 'bg-gradient-to-br from-amber-50 via-white to-orange-50'
+          : 'bg-gradient-to-br from-red-50 via-white to-orange-50'
     }`}>
       <div className="max-w-2xl w-full text-center">
         {/* Icon */}
         <div className={`mb-8 ${isSecure ? 'animate-bounce' : 'animate-pulse'}`}>
           <div className={`inline-flex items-center justify-center w-32 h-32 rounded-full shadow-2xl ${
-            isSecure
+            resultTone === 'emerald'
               ? 'bg-gradient-to-br from-emerald-400 to-cyan-500'
-              : 'bg-gradient-to-br from-red-400 to-orange-500'
+              : resultTone === 'amber'
+                ? 'bg-gradient-to-br from-amber-400 to-orange-400'
+                : 'bg-gradient-to-br from-red-400 to-orange-500'
           }`}>
-            <span className="text-7xl">{isSecure ? '🛡️' : '⚠️'}</span>
+            <span className="text-7xl">{isSecure ? '🛡️' : isInconclusive ? '⚠️' : '🚨'}</span>
           </div>
         </div>
 
         {/* Title */}
         <h1 className={`text-5xl font-extrabold tracking-tight mb-4 ${
-          isSecure
+        resultTone === 'emerald'
             ? 'bg-gradient-to-r from-emerald-600 via-cyan-600 to-blue-600'
+          : resultTone === 'amber'
+            ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600'
             : 'bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600'
         } bg-clip-text text-transparent`}>
-          {isSecure ? 'Fully Secured!' : 'OOPS! Not Secured'}
+        {isSecure ? 'Fully Secured!' : isInconclusive ? 'Scan Inconclusive' : 'OOPS! Not Secured'}
         </h1>
 
         <p className="text-2xl text-ink mb-8">
           <span className="font-bold">{targetName}</span> 
-          {isSecure 
-            ? ' is protected against all known vulnerabilities.'
-            : ` has ${vulnerabilityCount} vulnerabilit${vulnerabilityCount === 1 ? 'y' : 'ies'} that need attention.`
+          {isInconclusive
+            ? ' could not be fully tested. No security conclusion can be made.'
+            : isSecure
+              ? ' passed the configured security tests.'
+              : ` has ${vulnerabilityCount} vulnerabilit${vulnerabilityCount === 1 ? 'y' : 'ies'} that need attention.`
           }
         </p>
 
         {/* Statistics */}
         <div className={`mb-12 p-8 rounded-2xl bg-white/80 backdrop-blur-sm border shadow-lg ${
-          isSecure ? 'border-emerald-200' : 'border-red-200'
+          resultTone === 'emerald' ? 'border-emerald-200' : resultTone === 'amber' ? 'border-amber-200' : 'border-red-200'
         }`}>
           <div className="grid grid-cols-3 gap-6 text-center">
             <div>
-              <div className={`text-4xl font-bold ${isSecure ? 'text-emerald-600' : 'text-red-600'}`}>
-                {scan ? `${passedAttacks}/${scan.total_attacks}` : `${15 - vulnerabilityCount}/15`}
+              <div className={`text-4xl font-bold ${resultTone === 'emerald' ? 'text-emerald-600' : resultTone === 'amber' ? 'text-amber-600' : 'text-red-600'}`}>
+                {isInconclusive ? 'N/A' : scan ? `${passedAttacks}/${scan.total_attacks}` : `${15 - vulnerabilityCount}/15`}
               </div>
               <div className="text-sm text-ink-soft mt-1">Attack Layers</div>
-              <div className="text-xs text-ink-soft">{isSecure ? 'Passed' : 'Passed/Failed'}</div>
+              <div className="text-xs text-ink-soft">{isInconclusive ? 'Incomplete' : isSecure ? 'Passed' : 'Passed/Failed'}</div>
             </div>
             <div>
-              <div className={`text-4xl font-bold ${isSecure ? 'text-emerald-600' : 'text-red-600'}`}>
-                {vulnerabilityCount}
+              <div className={`text-4xl font-bold ${resultTone === 'emerald' ? 'text-emerald-600' : resultTone === 'amber' ? 'text-amber-600' : 'text-red-600'}`}>
+                {isInconclusive ? 'N/A' : vulnerabilityCount}
               </div>
               <div className="text-sm text-ink-soft mt-1">Open</div>
               <div className="text-xs text-ink-soft">Vulnerabilities</div>
             </div>
             <div>
-              <div className={`text-4xl font-bold ${isSecure ? 'text-emerald-600' : 'text-red-600'}`}>
-                {securityScore}%
+              <div className={`text-4xl font-bold ${resultTone === 'emerald' ? 'text-emerald-600' : resultTone === 'amber' ? 'text-amber-600' : 'text-red-600'}`}>
+                {isInconclusive ? 'N/A' : `${securityScore}%`}
               </div>
               <div className="text-sm text-ink-soft mt-1">Security</div>
               <div className="text-xs text-ink-soft">Score</div>
@@ -205,7 +225,7 @@ export default function FullySecure() {
           </div>
           
           {/* Vulnerability Breakdown for Insecure Chatbots */}
-          {!isSecure && (
+          {!isSecure && !isInconclusive && (
             <div className="mt-6 pt-6 border-t border-gray-200">
               <div className="grid grid-cols-4 gap-4 text-center text-sm">
                 <div>
@@ -246,6 +266,17 @@ export default function FullySecure() {
             </div>
             <div className="px-4 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold shadow-md">
               ✅ NIST AI RMF Aligned
+            </div>
+          </div>
+        ) : isInconclusive ? (
+          <div className="mb-12 p-6 rounded-xl bg-amber-50 border-2 border-amber-300">
+            <div className="text-left">
+              <div className="font-bold text-amber-800 text-lg mb-2">Target could not be fully tested</div>
+              <div className="text-sm text-amber-700">
+                Tests that did not receive a valid chatbot response are marked inconclusive, not blocked.
+                If the target URL uses localhost, Render cannot reach a service running on your computer.
+                Use a publicly reachable target URL or run the scanner locally.
+              </div>
             </div>
           </div>
         ) : (

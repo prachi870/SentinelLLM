@@ -30,6 +30,12 @@ service's memory and request limits. The worker and Beat services are only
 needed if you switch `SCAN_EXECUTION_MODE` to `celery` or want scheduled
 watcher checks.
 
+Targets scanned from Render must be reachable over the network. A target
+running at `localhost` on your computer is not reachable from Render; use a
+publicly reachable target URL or run the scanner locally. Network and HTTP
+failures are reported as inconclusive, not as blocked attacks or a secure
+result.
+
 ## Deploy only the web service manually
 
 If you don't want to apply the Blueprint, create a **Web Service** from the

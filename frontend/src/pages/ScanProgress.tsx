@@ -23,7 +23,7 @@ const ATTACK_LAYERS = [
   { type: 'few_shot_leakage', name: 'Layer 15 — Few-Shot Leakage' },
 ];
 
-type AttackStatus = 'queued' | 'testing' | 'passed' | 'failed';
+type AttackStatus = 'queued' | 'testing' | 'passed' | 'failed' | 'inconclusive';
 
 interface AttackState {
   status: AttackStatus;
@@ -94,13 +94,14 @@ export default function ScanProgress() {
             break;
 
           case 'attack_complete': {
-            const { attack_type, success, confidence } = data.data;
+            const { attack_type, success, confidence, inconclusive, reason, prompts_tested } = data.data;
             setAttacks((prev) => ({
               ...prev,
               [attack_type]: {
-                status: success ? 'failed' : 'passed', // success means vulnerability found
+                status: inconclusive ? 'inconclusive' : success ? 'failed' : 'passed',
                 confidence: confidence || 0,
-                promptsTested: 10, // Updated to match MAX_PROMPTS_PER_TYPE
+                promptsTested: inconclusive ? undefined : prompts_tested,
+                severity: inconclusive ? reason : undefined,
               },
             }));
             break;
@@ -213,6 +214,8 @@ export default function ScanProgress() {
         return '❌';
       case 'testing':
         return '⏳';
+      case 'inconclusive':
+        return '⚠️';
       default:
         return '⬜';
     }
@@ -228,12 +231,16 @@ export default function ScanProgress() {
         return attack.promptsTested && attack.totalPrompts
           ? `Testing prompt ${attack.promptsTested}/${attack.totalPrompts}...`
           : 'Testing...';
+      case 'inconclusive':
+        return `INCONCLUSIVE${attack.severity ? ` — ${attack.severity}` : ''}`;
       default:
         return 'Queued';
     }
   };
 
-  const completedCount = Object.values(attacks).filter((a) => a.status === 'passed' || a.status === 'failed').length;
+  const completedCount = Object.values(attacks).filter((a) =>
+    ['passed', 'failed', 'inconclusive'].includes(a.status)
+  ).length;
   const totalCount = ATTACK_LAYERS.length;
   const progressPercent = Math.floor((completedCount / totalCount) * 100);
 
@@ -255,7 +262,7 @@ export default function ScanProgress() {
           Scan in Progress
         </h1>
         <p className="text-ink-soft mt-2">
-          Testing 15 attack vectors with up to 85 prompts each...
+          Testing 15 attack vectors against the registered chatbot...
         </p>
       </div>
 
@@ -305,6 +312,8 @@ export default function ScanProgress() {
                 ? 'text-red-600'
                 : attack.status === 'testing'
                 ? 'text-amber-600'
+                : attack.status === 'inconclusive'
+                ? 'text-amber-700'
                 : 'text-ink-soft';
 
             return (
@@ -324,7 +333,7 @@ export default function ScanProgress() {
                       <div className={`text-sm ${statusColor}`}>{getStatusText(attack)}</div>
                     </div>
                   </div>
-                  {attack.confidence !== undefined && (
+                  {attack.confidence !== undefined && attack.status !== 'inconclusive' && (
                     <div className="text-xs text-ink-soft">
                       Confidence: {Math.round(attack.confidence * 100)}%
                     </div>
