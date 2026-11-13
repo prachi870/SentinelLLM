@@ -1,0 +1,8 @@
+[build]
+builder = "nixpacks"
+buildCommand = "cd backend && pip install -r requirements.txt"
+
+[deploy]
+startCommand = "cd backend && python -m celery -A tasks.celery_app worker --queues=scans,default --loglevel=info"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
