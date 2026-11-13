@@ -336,11 +336,11 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                       type="url"
                       value={chatbotUrl}
                       onChange={(e) => setChatbotUrl(e.target.value)}
-                      placeholder="http://localhost:9000"
+                      placeholder="https://your-chatbot.example.com/api/chat"
                       className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <p className="mt-1 text-xs text-slate-500">
-                      The URL where your chatbot accepts POST requests with OpenAI-compatible format
+                      Enter the chatbot POST API endpoint, not just its website homepage. Base URLs try common chat paths; custom APIs may need an adapter.
                     </p>
                   </div>
 

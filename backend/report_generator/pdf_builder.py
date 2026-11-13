@@ -12,6 +12,7 @@ Creates professional security audit reports with:
 from datetime import datetime
 from io import BytesIO
 from typing import List, Optional
+from xml.sax.saxutils import escape
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, A4
@@ -321,7 +322,7 @@ class PDFReportBuilder:
             if log.prompt_used:
                 prompt_preview = log.prompt_used[:200] + "..." if len(log.prompt_used) > 200 else log.prompt_used
                 self.story.append(Paragraph("<b>Sample Attack Prompt:</b>", self.styles["Normal"]))
-                self.story.append(Paragraph(f"<i>{prompt_preview}</i>", self.styles["Normal"]))
+                self.story.append(Paragraph(f"<i>{escape(prompt_preview)}</i>", self.styles["Normal"]))
                 self.story.append(Spacer(1, 0.1 * inch))
 
             # Sample response (truncated)
@@ -330,7 +331,7 @@ class PDFReportBuilder:
                     log.chatbot_response[:200] + "..." if len(log.chatbot_response) > 200 else log.chatbot_response
                 )
                 self.story.append(Paragraph("<b>Chatbot Response:</b>", self.styles["Normal"]))
-                self.story.append(Paragraph(f"<i>{response_preview}</i>", self.styles["Normal"]))
+                self.story.append(Paragraph(f"<i>{escape(response_preview)}</i>", self.styles["Normal"]))
 
             self.story.append(Spacer(1, 0.15 * inch))
 

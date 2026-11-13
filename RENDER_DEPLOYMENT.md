@@ -34,7 +34,12 @@ Targets scanned from Render must be reachable over the network. A target
 running at `localhost` on your computer is not reachable from Render; use a
 publicly reachable target URL or run the scanner locally. Network and HTTP
 failures are reported as inconclusive, not as blocked attacks or a secure
-result.
+result. Register the chatbot's POST API endpoint rather than its website
+homepage when possible. If only an origin is provided, the scanner tries
+common paths (`/api/chat`, `/chat`, and `/v1/chat/completions`). It supports
+common `message` and OpenAI-compatible request bodies and response formats;
+chatbots with a custom API contract require an adapter or an explicit compatible
+endpoint.
 
 ## Deploy only the web service manually
 

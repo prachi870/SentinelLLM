@@ -1,96 +1,129 @@
-"""
-sender.py — Sends a single-turn payload to the target chatbot URL.
-"""
+"""Send prompts to chatbot endpoints and extract their response text."""
 
 import json
+from urllib.parse import urlsplit, urlunsplit
+
 import httpx
 
 
-def send_to_target(url: str, payload: str, auth_token: str = None, timeout: int = 5) -> str:
-    """
-    Send a single-turn message payload to the target URL.
+def target_endpoints(url: str):
+    """Use an explicit API path as-is, or try common paths for a site origin."""
+    parsed = urlsplit(url.strip())
+    path = parsed.path.rstrip("/")
+    if path:
+        return [url.rstrip("/")]
 
-    Args:
-        url: The absolute target URL.
-        payload: The prompt text/attack payload.
-        auth_token: Plaintext authorization token (if any).
-        timeout: Request timeout in seconds.
+    origin = urlunsplit((parsed.scheme, parsed.netloc, "", parsed.query, ""))
+    return [
+        f"{origin}/api/chat",
+        f"{origin}/chat",
+        f"{origin}/v1/chat/completions",
+        origin,
+    ]
 
-    Returns:
-        The response content string from the chatbot, or an error message.
-    """
+
+def response_content(response: httpx.Response) -> str:
+    """Extract common chatbot response formats while preserving unknown JSON."""
+    if not 200 <= response.status_code < 300:
+        return f"[ERROR: HTTP {response.status_code}]"
+
+    try:
+        data = response.json()
+    except ValueError:
+        return response.text.strip()
+
+    if isinstance(data, str):
+        return data.strip()
+
+    if isinstance(data, dict):
+        choices = data.get("choices")
+        if isinstance(choices, list) and choices and isinstance(choices[0], dict):
+            choice = choices[0]
+            message = choice.get("message")
+            if isinstance(message, dict) and message.get("content") is not None:
+                content = message["content"]
+                if isinstance(content, list):
+                    text_parts = [
+                        part.get("text", "")
+                        for part in content
+                        if isinstance(part, dict) and part.get("type") == "text"
+                    ]
+                    return "\n".join(part for part in text_parts if part).strip()
+                return str(content).strip()
+            if choice.get("text") is not None:
+                return str(choice["text"]).strip()
+
+        for key in ("reply", "response", "message", "text", "answer", "output"):
+            value = data.get(key)
+            if value is not None and not isinstance(value, (dict, list)):
+                return str(value).strip()
+        for key in ("data", "result"):
+            nested = data.get(key)
+            if isinstance(nested, dict):
+                nested_response = response_content(
+                    httpx.Response(200, json=nested)
+                )
+                if nested_response != json.dumps(nested, ensure_ascii=False):
+                    return nested_response
+
+    return json.dumps(data, ensure_ascii=False)
+
+
+def request_headers(auth_token: str = None):
     headers = {"Content-Type": "application/json"}
     if auth_token:
-        headers["Authorization"] = f"Bearer {auth_token}"
+        headers["Authorization"] = (
+            auth_token
+            if auth_token.lower().startswith("bearer ")
+            else f"Bearer {auth_token}"
+        )
+    return headers
 
-    # Auto-detect API endpoint if base URL is provided
-    # Try common endpoint paths in priority order
-    base_url = url.rstrip('/')  # Remove trailing slash if present
-    
-    # If URL already contains a path (e.g. /api/chat), try it directly first
-    if '/' in url.split('://', 1)[-1].split(':', 1)[-1]:
-        # URL has a path, use it as-is
-        endpoints_to_try = [
-            (base_url, {"message": payload}),
-        ]
-    else:
-        # Base URL without path, try common patterns
-        endpoints_to_try = [
-            (f"{base_url}/api/chat", {"message": payload}),  # Most common pattern (DSA bot)
-            (f"{base_url}/chat", {"message": payload}),
-            (f"{base_url}/v1/chat/completions", {"messages": [{"role": "user", "content": payload}], "max_tokens": 500}),
-            (f"{base_url}", {"message": payload}),  # Try root
-        ]
 
-    def try_post(target_url, body):
-        """Try a single POST request. Returns (success: bool, result: str)"""
-        try:
-            with httpx.Client(timeout=timeout) as client:
-                resp = client.post(target_url, headers=headers, json=body)
-                
-                # Only accept 200 as success
-                if resp.status_code != 200:
-                    return False, f"[ERROR: HTTP {resp.status_code}]"
-                
-                # Try to parse JSON response
-                try:
-                    data = resp.json()
-                except ValueError:
-                    # Not JSON, return as plain text
-                    return True, resp.text.strip()
+def send_to_target(
+    url: str, payload: str, auth_token: str = None, timeout: int = 30
+) -> str:
+    """
+    Send one message to the configured endpoint.
 
-                # Parse structured JSON responses
-                # Try OpenAI format first
-                choices = data.get("choices")
-                if choices and isinstance(choices, list) and len(choices) > 0:
-                    content = choices[0].get("message", {}).get("content")
-                    if content is not None:
-                        return True, str(content).strip()
-
-                # Try common response keys (added "reply" for DSA bot)
-                for key in ["reply", "response", "message", "text", "answer"]:
-                    val = data.get(key)
-                    if val is not None:
-                        return True, str(val).strip()
-
-                # If no known key found, return entire JSON
-                return True, json.dumps(data)
-                
-        except httpx.TimeoutException:
-            return False, "[ERROR: Request timed out]"
-        except httpx.ConnectError:
-            return False, "[ERROR: Connection refused]"
-        except Exception as e:
-            return False, f"[ERROR: {type(e).__name__}]"
-
-    # Try all endpoint + body combinations
+    A URL with an API path is used as provided. For a bare origin (including one
+    ending in `/`), common chat paths are tried. A 400/422 on an explicit
+    endpoint also triggers one retry with the OpenAI-compatible request shape.
+    """
+    headers = request_headers(auth_token)
+    endpoints = target_endpoints(url)
     last_error = "[ERROR: No endpoint responded successfully]"
-    for endpoint_url, body in endpoints_to_try:
-        success, result = try_post(endpoint_url, body)
-        if success:
-            return result
-        # Store last error for debugging
-        last_error = result
 
-    # All attempts failed
+    for endpoint in endpoints:
+        bodies = [
+            {"message": payload},
+            {
+                "messages": [{"role": "user", "content": payload}],
+                "max_tokens": 500,
+            },
+        ]
+        for body_index, body in enumerate(bodies):
+            try:
+                with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+                    response = client.post(endpoint, headers=headers, json=body)
+                result = response_content(response)
+                if not result.startswith("[ERROR:"):
+                    return result
+                last_error = result
+                if response.status_code in (401, 403, 429) or response.status_code >= 500:
+                    return result
+                if response.status_code in (404, 405):
+                    break
+                if body_index == 1:
+                    break
+            except httpx.TimeoutException:
+                last_error = "[ERROR: Request timed out]"
+                break
+            except httpx.ConnectError:
+                last_error = "[ERROR: Connection refused]"
+                break
+            except httpx.RequestError as exc:
+                last_error = f"[ERROR: {type(exc).__name__}]"
+                break
+
     return last_error

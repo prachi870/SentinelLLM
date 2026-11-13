@@ -179,7 +179,7 @@ export default function Home() {
               <input
                 type="url"
                 required
-                placeholder="http://localhost:9000/chat"
+                placeholder="https://your-chatbot.example.com/api/chat"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-lg bg-canvas border border-border text-ink placeholder-ink-soft/50 focus:outline-none focus:border-accent-indigo transition"
