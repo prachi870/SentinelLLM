@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>Backend API Test</h1>
+    <button onclick="testLogin()">Test Demo Login</button>
+    <button onclick="testSignup()">Test Signup</button>
+    <pre id="output"></pre>
+
+    <script>
+        const API_URL = 'https://web-production-70282b06.up.railway.app/api/v1';
+        const output = document.getElementById('output');
+
+        async function testLogin() {
+            output.textContent = 'Testing login...\n';
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'test@sentinelloop.ai',
+                        password: 'testpass123'
+                    }),
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                output.textContent += `✅ Login Success!\nStatus: ${response.status}\nToken: ${data.access_token.substring(0, 50)}...`;
+            } catch (error) {
+                output.textContent += `❌ Login Failed!\nError: ${error.message}`;
+            }
+        }
+
+        async function testSignup() {
+            output.textContent = 'Testing signup...\n';
+            const randomEmail = `test${Date.now()}@example.com`;
+            try {
+                const response = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: randomEmail,
+                        password: 'testpass123',
+                        full_name: 'Test User'
+                    }),
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                output.textContent += `✅ Signup Success!\nStatus: ${response.status}\nEmail: ${randomEmail}\nToken: ${data.access_token.substring(0, 50)}...`;
+            } catch (error) {
+                output.textContent += `❌ Signup Failed!\nError: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
