@@ -29,6 +29,10 @@ background worker. This is slower and can still be constrained by the web
 service's memory and request limits. The worker and Beat services are only
 needed if you switch `SCAN_EXECUTION_MODE` to `celery` or want scheduled
 watcher checks.
+Each scan currently runs one representative prompt for each of the 15 attack
+categories, keeping LLM-judge usage within the configured per-scan budget. This
+provides category coverage, not exhaustive multi-prompt testing; network,
+target rate-limit, or provider errors can still leave a scan inconclusive.
 
 Targets scanned from Render must be reachable over the network. A target
 running at `localhost` on your computer is not reachable from Render; use a

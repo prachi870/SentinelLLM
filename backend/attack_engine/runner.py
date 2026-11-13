@@ -19,10 +19,9 @@ from detection_engine.detector import detect
 
 DATASET_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset")
 
-# Maximum prompts to test per attack type
-# Set to 20 for fast scanning (under 2 minutes total)
-# Increase to 85 for thorough production testing
-MAX_PROMPTS_PER_TYPE = 20
+# One representative prompt per category reserves the 50-call LLM budget
+# across the full set of 15 attack types.
+MAX_PROMPTS_PER_TYPE = 1
 
 MULTI_TURN_ATTACK_TYPES = {
     AttackType.context_manipulation,
@@ -225,7 +224,7 @@ def run_attack(
             target_url=target_url,
             seed_payload=seed,
             auth_token=auth_token,
-            max_iterations=3,
+            max_iterations=1,
             scan_id=scan_id,
         )
         

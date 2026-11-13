@@ -98,6 +98,9 @@ def run_adaptive_attack(
         if not best_result or result.confidence > best_result.confidence:
             best_result = result
 
+        if i + 1 >= max_iterations:
+            break
+
         # 4. Enforce scan cost cap before calling the OpenAI/Gemini improver model
         if not check_and_increment_llm_calls(scan_id):
             return best_result or result
