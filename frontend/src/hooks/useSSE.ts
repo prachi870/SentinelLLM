@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getApiUrl } from '../config';
 
 export interface SSEEvent {
   event_type: string;
@@ -30,7 +31,7 @@ export function useSSE(scanId: string | null) {
     }
 
     setStatus('connecting');
-    const url = `http://localhost:8001/api/v1/scans/${scanId}/stream?token=${token}`;
+    const url = `${getApiUrl()}/api/v1/scans/${scanId}/stream?token=${encodeURIComponent(token)}`;
     const eventSource = new EventSource(url);
 
     eventSource.onopen = () => {

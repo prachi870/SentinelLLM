@@ -23,6 +23,13 @@ health check verifies database and Redis connectivity. Redis is a Key Value
 service (not a PostgreSQL database), and all three application services use
 the same database and Redis URLs.
 
+The Blueprint sets `SCAN_EXECUTION_MODE=inline` and limits attack concurrency
+to one so manual scans run in the web service without requiring a paid
+background worker. This is slower and can still be constrained by the web
+service's memory and request limits. The worker and Beat services are only
+needed if you switch `SCAN_EXECUTION_MODE` to `celery` or want scheduled
+watcher checks.
+
 ## Deploy only the web service manually
 
 If you don't want to apply the Blueprint, create a **Web Service** from the
@@ -47,6 +54,8 @@ same region. Add these environment variables to the web service:
 | `ENVIRONMENT` | `production` |
 | `WATCHER_INTERVAL_SECONDS` | `300` |
 | `MAX_LLM_CALLS_PER_SCAN` | `50` |
+| `SCAN_EXECUTION_MODE` | `inline` |
+| `SCAN_ATTACK_CONCURRENCY` | `1` |
 
 If you enable background scans, create two **Background Worker** services
 from the same repository with `backend` as the root directory and the same

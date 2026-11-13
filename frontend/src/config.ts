@@ -17,8 +17,7 @@ export const getApiUrl = (): string => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Fallback to production Railway URL
-  return 'https://web-production-70282b06.up.railway.app';
+  return 'https://sentinelllm-backend.onrender.com';
 };
 
 export const config = {

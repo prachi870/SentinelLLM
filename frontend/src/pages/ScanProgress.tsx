@@ -76,7 +76,9 @@ export default function ScanProgress() {
       return;
     }
 
-    const eventSource = new EventSource(`${getApiUrl()}/api/v1/scans/${scanId}/stream?token=${token}`);
+    const eventSource = new EventSource(
+      `${getApiUrl()}/api/v1/scans/${scanId}/stream?token=${encodeURIComponent(token)}`
+    );
 
     eventSource.onmessage = (event) => {
       try {
@@ -162,8 +164,8 @@ export default function ScanProgress() {
             break;
 
           case 'scan_failed':
-            setError('Scan failed: ' + (data.data?.error || 'Unknown error'));
-            showToast.scanFailed(data.data?.error);
+            setError('Scan failed: ' + (data.data?.reason || data.data?.error || 'Unknown error'));
+            showToast.scanFailed(data.data?.reason || data.data?.error);
             eventSource.close();
             break;
 

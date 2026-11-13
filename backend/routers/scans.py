@@ -1,17 +1,10 @@
-"""
-routers/scans.py — Scan management: create, get, SSE stream, retest, CI endpoint.
-
-Attack logic is wired in Component 2. Stubs for Celery dispatch are marked TODO.
-The CI endpoint (/scans/ci) is fully functional for auth — it validates the API key
-via validate_api_key() from api_keys.py and creates a scan record. The Celery task
-dispatch will be added in Component 2.
-"""
+"""Scan management endpoints for creation, progress streaming, and retesting."""
 
 import asyncio
 import json
 
 import redis as redis_lib
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -28,6 +21,13 @@ router = APIRouter(prefix="/scans", tags=["scans"])
 _redis = redis_lib.from_url(settings.REDIS_URL, decode_responses=True)
 
 
+def _dispatch_scan(background_tasks: BackgroundTasks, task, *args: str) -> None:
+    if settings.SCAN_EXECUTION_MODE == "inline":
+        background_tasks.add_task(task.apply, args=args, throw=True)
+    else:
+        task.delay(*args)
+
+
 # ---------------------------------------------------------------------------
 # Manual scan creation
 # ---------------------------------------------------------------------------
@@ -35,6 +35,7 @@ _redis = redis_lib.from_url(settings.REDIS_URL, decode_responses=True)
 @router.post("/")
 def create_scan(
     target_id: str,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -72,12 +73,16 @@ def create_scan(
     db.refresh(scan)
 
     from tasks.scan_tasks import run_full_scan
-    run_full_scan.delay(str(scan.id), str(target_id))
+    _dispatch_scan(background_tasks, run_full_scan, str(scan.id), str(target_id))
 
     return {
         "scan_id": str(scan.id),
         "status": scan.status.value,
-        "message": "Scan queued. (Attack engine will be wired in Component 2.)",
+        "message": (
+            "Scan accepted for inline execution."
+            if settings.SCAN_EXECUTION_MODE == "inline"
+            else "Scan queued for background execution."
+        ),
         "stream_url": f"/api/v1/scans/{scan.id}/stream",
     }
 
@@ -89,6 +94,7 @@ def create_scan(
 @router.post("/ci")
 def ci_scan(
     target_id: str,
+    background_tasks: BackgroundTasks,
     commit_sha: str = None,
     x_api_key: str = Header(None),
     db: Session = Depends(get_db),
@@ -120,7 +126,7 @@ def ci_scan(
     db.refresh(scan)
 
     from tasks.scan_tasks import run_full_scan
-    run_full_scan.delay(str(scan.id), str(target_id))
+    _dispatch_scan(background_tasks, run_full_scan, str(scan.id), str(target_id))
 
     return {
         "scan_id": str(scan.id),
@@ -194,6 +200,7 @@ def get_scan(
 @router.get("/{scan_id}/stream")
 async def stream_scan_events(
     scan_id: str,
+    request: Request,
     token: str = None,
     db: Session = Depends(get_db)
 ):
@@ -253,20 +260,24 @@ async def stream_scan_events(
         )
 
         try:
-            for message in pubsub.listen():
-                if message["type"] == "message":
-                    yield f"data: {message['data']}\n\n"
-                    # Auto-close stream when scan finishes
-                    try:
-                        payload = json.loads(message["data"])
-                        if payload.get("event_type") in (
-                            "scan_done", "scan_failed", "fully_secure"
-                        ):
-                            break
-                    except (json.JSONDecodeError, KeyError):
-                        pass
-                # Yield control so the event loop can handle heartbeats/disconnects
-                await asyncio.sleep(0.05)
+            while not await request.is_disconnected():
+                message = await asyncio.to_thread(
+                    pubsub.get_message,
+                    ignore_subscribe_messages=True,
+                    timeout=1.0,
+                )
+                if message is None or message["type"] != "message":
+                    continue
+
+                yield f"data: {message['data']}\n\n"
+                try:
+                    payload = json.loads(message["data"])
+                    if payload.get("event_type") in (
+                        "scan_done", "scan_failed", "fully_secure"
+                    ):
+                        break
+                except (json.JSONDecodeError, KeyError):
+                    pass
         finally:
             pubsub.unsubscribe(channel)
             pubsub.close()
@@ -287,7 +298,11 @@ async def stream_scan_events(
 # ---------------------------------------------------------------------------
 
 @router.post("/{scan_id}/retest")
-def retest_scan(scan_id: str, db: Session = Depends(get_db)):
+def retest_scan(
+    scan_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     """
     Manually trigger a retest of all open findings from a completed scan.
     Full retest logic wired in Component 2.
@@ -316,7 +331,13 @@ def retest_scan(scan_id: str, db: Session = Depends(get_db)):
     db.refresh(retest)
 
     from tasks.scan_tasks import run_retest_scan
-    run_retest_scan.delay(str(retest.id), str(original.target_id), scan_id)
+    _dispatch_scan(
+        background_tasks,
+        run_retest_scan,
+        str(retest.id),
+        str(original.target_id),
+        scan_id,
+    )
 
     return {
         "retest_scan_id": str(retest.id),

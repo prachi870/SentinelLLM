@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from typing import Literal
 
 
 class Settings(BaseSettings):
@@ -11,6 +12,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     WATCHER_INTERVAL_SECONDS: int = 300
     MAX_LLM_CALLS_PER_SCAN: int = 50
+    SCAN_EXECUTION_MODE: Literal["celery", "inline"] = "celery"
+    SCAN_ATTACK_CONCURRENCY: int = 3
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

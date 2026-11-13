@@ -98,3 +98,7 @@ envVarGroups:
         value: 300
       - key: MAX_LLM_CALLS_PER_SCAN
         value: 50
+      - key: SCAN_EXECUTION_MODE
+        value: inline
+      - key: SCAN_ATTACK_CONCURRENCY
+        value: 1

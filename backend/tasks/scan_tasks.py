@@ -106,9 +106,8 @@ def run_full_scan(self, scan_id: str, target_id: str):
     _redis.delete(f"llm_calls:{scan_id}")
 
     try:
-        # PARALLEL EXECUTION: Run all 15 attacks concurrently with ThreadPoolExecutor
-        # Increased to 15 workers (one per attack) for maximum speed
-        with ThreadPoolExecutor(max_workers=15) as executor:
+        # Bound attack concurrency to avoid exhausting memory on small instances.
+        with ThreadPoolExecutor(max_workers=settings.SCAN_ATTACK_CONCURRENCY) as executor:
             # Submit all attack tasks to thread pool
             future_to_attack = {
                 executor.submit(
