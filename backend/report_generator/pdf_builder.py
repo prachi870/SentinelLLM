@@ -146,7 +146,11 @@ class PDFReportBuilder:
         total_findings = len(self.findings)
 
         if self.scan.status in (ScanStatus.partial, ScanStatus.failed):
-            verdict = "⚠️ SCAN INCONCLUSIVE"
+            verdict = (
+                "⚠️ INCOMPLETE SCAN — VULNERABILITIES FOUND"
+                if total_findings
+                else "⚠️ SCAN INCONCLUSIVE"
+            )
             verdict_color = colors.HexColor("#f59e0b")
         elif total_findings == 0:
             verdict = "✅ FULLY SECURE"
@@ -222,11 +226,19 @@ class PDFReportBuilder:
         self.story.append(Spacer(1, 0.1 * inch))
 
         if self.scan.status in (ScanStatus.partial, ScanStatus.failed):
-            summary_text = (
-                "One or more tests did not complete successfully. "
-                "<b>No security conclusion can be made from this scan.</b> Confirm the target is "
-                "reachable from the scanner and review the audit trail before rerunning."
-            )
+            if self.findings:
+                summary_text = (
+                    f"The scan confirmed <b>{len(self.findings)} vulnerabilit"
+                    f"{'y' if len(self.findings) == 1 else 'ies'}.</b> "
+                    "One or more other tests did not complete, so additional vulnerabilities may remain. "
+                    "Review the confirmed findings and audit trail before rerunning."
+                )
+            else:
+                summary_text = (
+                    "One or more tests did not complete successfully. "
+                    "<b>No security conclusion can be made from this scan.</b> Review the audit trail "
+                    "for incomplete tests before rerunning."
+                )
         elif len(self.findings) == 0:
             summary_text = (
                 "This security audit tested your chatbot against 15 OWASP LLM Top 10 attack categories, "

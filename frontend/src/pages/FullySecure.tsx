@@ -30,12 +30,15 @@ export default function FullySecure() {
   // Calculate security metrics
   const vulnerabilityCount = findings.length;
   const isInconclusive = !scan || scan.status === 'partial' || scan.status === 'failed';
+  const hasConfirmedVulnerabilities = vulnerabilityCount > 0;
   const isSecure = scan?.status === 'done' && vulnerabilityCount === 0;
-  const resultTone = isInconclusive
-    ? 'amber'
-    : isSecure
-      ? 'emerald'
-      : 'red';
+  const resultTone = hasConfirmedVulnerabilities
+    ? 'red'
+    : isInconclusive
+      ? 'amber'
+      : isSecure
+        ? 'emerald'
+        : 'red';
   
   const criticalCount = findings.filter(f => f.severity === 'critical').length;
   const highCount = findings.filter(f => f.severity === 'high').length;
@@ -171,7 +174,9 @@ export default function FullySecure() {
                 ? 'bg-gradient-to-br from-amber-400 to-orange-400'
                 : 'bg-gradient-to-br from-red-400 to-orange-500'
           }`}>
-            <span className="text-7xl">{isSecure ? '🛡️' : isInconclusive ? '⚠️' : '🚨'}</span>
+            <span className="text-7xl">
+              {isSecure ? '🛡️' : hasConfirmedVulnerabilities ? '🚨' : isInconclusive ? '⚠️' : '🚨'}
+            </span>
           </div>
         </div>
 
@@ -183,14 +188,22 @@ export default function FullySecure() {
             ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600'
             : 'bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600'
         } bg-clip-text text-transparent`}>
-        {isSecure ? 'Fully Secured!' : isInconclusive ? 'Scan Inconclusive' : 'OOPS! Not Secured'}
+        {isSecure
+          ? 'Fully Secured!'
+          : hasConfirmedVulnerabilities
+            ? 'OOPS! Not Secured'
+            : isInconclusive
+              ? 'Scan Inconclusive'
+              : 'OOPS! Not Secured'}
         </h1>
 
         <p className="text-2xl text-ink mb-8">
           <span className="font-bold">{targetName}</span> 
-          {isInconclusive
-            ? ' could not be fully tested. No security conclusion can be made.'
-            : isSecure
+          {hasConfirmedVulnerabilities
+            ? ` has ${vulnerabilityCount} confirmed vulnerabilit${vulnerabilityCount === 1 ? 'y' : 'ies'}.${isInconclusive ? ' The scan was incomplete, so additional vulnerabilities may remain.' : ''}`
+            : isInconclusive
+              ? ' could not be fully tested. No security conclusion can be made.'
+              : isSecure
               ? ' passed the configured security tests.'
               : ` has ${vulnerabilityCount} vulnerabilit${vulnerabilityCount === 1 ? 'y' : 'ies'} that need attention.`
           }
@@ -210,7 +223,7 @@ export default function FullySecure() {
             </div>
             <div>
               <div className={`text-4xl font-bold ${resultTone === 'emerald' ? 'text-emerald-600' : resultTone === 'amber' ? 'text-amber-600' : 'text-red-600'}`}>
-                {isInconclusive ? 'N/A' : vulnerabilityCount}
+                {isInconclusive && !hasConfirmedVulnerabilities ? 'N/A' : vulnerabilityCount}
               </div>
               <div className="text-sm text-ink-soft mt-1">Open</div>
               <div className="text-xs text-ink-soft">Vulnerabilities</div>
@@ -225,7 +238,7 @@ export default function FullySecure() {
           </div>
           
           {/* Vulnerability Breakdown for Insecure Chatbots */}
-          {!isSecure && !isInconclusive && (
+          {hasConfirmedVulnerabilities && (
             <div className="mt-6 pt-6 border-t border-gray-200">
               <div className="grid grid-cols-4 gap-4 text-center text-sm">
                 <div>
@@ -273,9 +286,9 @@ export default function FullySecure() {
             <div className="text-left">
               <div className="font-bold text-amber-800 text-lg mb-2">Target could not be fully tested</div>
               <div className="text-sm text-amber-700">
-                Tests that did not receive a valid chatbot response are marked inconclusive, not blocked.
-                If the target URL uses localhost, Render cannot reach a service running on your computer.
-                Use a publicly reachable target URL or run the scanner locally.
+                {hasConfirmedVulnerabilities
+                  ? `The scan confirmed ${vulnerabilityCount} vulnerabilit${vulnerabilityCount === 1 ? 'y' : 'ies'}; other tests were incomplete. Review the confirmed findings below.`
+                  : 'Some tests could not be completed or evaluated, so no security conclusion can be made. Check the scan audit trail for the reason and run another scan when the issue is resolved.'}
               </div>
             </div>
           </div>

@@ -92,7 +92,7 @@ def run_adaptive_attack(
         # If security bypass is detected (success=True), return immediately
         if result.success:
             return result
-        if result.layer_failed == "http_error":
+        if result.layer_failed in {"http_error", "budget_exhausted"}:
             return result
 
         if not best_result or result.confidence > best_result.confidence:

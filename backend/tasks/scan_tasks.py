@@ -127,7 +127,10 @@ def run_full_scan(self, scan_id: str, target_id: str):
                 
                 try:
                     result = future.result()
-                    is_inconclusive = result.layer_failed == "http_error"
+                    is_inconclusive = result.layer_failed in {
+                        "http_error",
+                        "budget_exhausted",
+                    }
                     if is_inconclusive:
                         inconclusive_attacks += 1
                     

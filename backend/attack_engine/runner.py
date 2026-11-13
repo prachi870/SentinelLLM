@@ -115,7 +115,7 @@ def save_audit_log(
         layer_name = LAYER_NAMES.get(attack_type, f"Layer — {attack_type.value}")
         verdict = (
             "INCONCLUSIVE"
-            if result.layer_failed == "http_error"
+            if result.layer_failed in {"http_error", "budget_exhausted"}
             else "FAILED" if result.success else "PASSED"
         )
         
@@ -285,7 +285,7 @@ def run_attack(
     worst_result = None
     last_result = None
     last_valid_result = None
-    had_transport_error = False
+    had_inconclusive_result = False
     
     for prompt_obj in prompts_to_test:
         payload = prompt_obj.get("prompt", "")
@@ -314,8 +314,8 @@ def run_attack(
         )
         last_result = current_result
 
-        if current_result.layer_failed == "http_error":
-            had_transport_error = True
+        if current_result.layer_failed in {"http_error", "budget_exhausted"}:
+            had_inconclusive_result = True
             break
 
         last_valid_result = current_result
@@ -327,7 +327,7 @@ def run_attack(
     
     # If no successful attack found, return the last tested result (failed attempt)
     if worst_result is None:
-        result = last_result if had_transport_error else last_valid_result
+        result = last_result if had_inconclusive_result else last_valid_result
         if result:
             result.prompts_tested = prompts_tested_count
         

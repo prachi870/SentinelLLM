@@ -130,6 +130,10 @@ def detect(
         "success": judge_res["success"],
         "confidence": judge_res["confidence"],
         "method": DetectionMethod.llm_judge,
-        "layer_failed": "llm_judge_verdict",
+        "layer_failed": (
+            "budget_exhausted"
+            if judge_res.get("inconclusive")
+            else "llm_judge_verdict"
+        ),
         "reason": judge_res["reason"],
     }

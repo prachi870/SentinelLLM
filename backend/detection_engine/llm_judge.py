@@ -157,6 +157,7 @@ def judge_safety(
             "success": False,
             "confidence": 0.0,
             "reason": "LLM Judge call skipped: scan call budget limit reached (50 calls max).",
+            "inconclusive": True,
         }
 
     # 2. Check if API key is a dummy placeholder or missing
