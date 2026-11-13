@@ -19,7 +19,7 @@ import models  # noqa: F401 — imports all ORM classes so they register on Base
 
 from config import settings
 from database import Base, engine
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from routers import api_keys, auth, findings, guard, health, init, reports, scans, targets, usage
 
@@ -68,17 +68,31 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# Custom CORS middleware to handle Vercel wildcard domains
+@app.middleware("http")
+async def custom_cors_middleware(request: Request, call_next):
+    origin = request.headers.get("origin")
+    
+    # Allow localhost and any Vercel domain
+    allowed = False
+    if origin:
+        if origin.startswith("http://localhost") or origin.endswith(".vercel.app"):
+            allowed = True
+    
+    response = await call_next(request)
+    
+    if allowed and origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    return response
+
+# Handle OPTIONS preflight requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "https://*.vercel.app",
-        "https://sentinel-llm.vercel.app",
-        "https://sentinelllm.vercel.app",
-        "https://sentinel-llm-prachiwork295s-projects.vercel.app",
-        "https://sentinel-llm-git-main-megha.vercel.app",
-        "https://sentinel-llm-git-main-mehga.vercel.app",
-    ],
+    allow_origins=["http://localhost:5173"],  # Fallback for local dev
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
