@@ -68,34 +68,17 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Custom CORS middleware to handle Vercel wildcard domains
-@app.middleware("http")
-async def custom_cors_middleware(request: Request, call_next):
-    origin = request.headers.get("origin")
-    
-    # Allow localhost and any Vercel domain
-    allowed = False
-    if origin:
-        if origin.startswith("http://localhost") or origin.endswith(".vercel.app"):
-            allowed = True
-    
-    response = await call_next(request)
-    
-    if allowed and origin:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Methods"] = "*"
-        response.headers["Access-Control-Allow-Headers"] = "*"
-    
-    return response
-
-# Handle OPTIONS preflight requests
+# CORS configuration - allow all Vercel domains
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Fallback for local dev
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+    ],
 )
 
 # Register routers under /api/v1
